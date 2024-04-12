@@ -195,6 +195,21 @@ module movemate::i64 {
         }
     }
 
+    #[view]
+    public fun equal(): u8 {
+        EQUAL
+    }
+
+    #[view]
+    public fun less_than(): u8 {
+        LESS_THAN
+    }
+
+    #[view]
+    public fun greater_than(): u8 {
+        GREATER_THAN
+    }
+
     #[test]
     fun test_compare() {
         assert!(compare(&from(123), &from(123)) == EQUAL, 0);
