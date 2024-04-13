@@ -31,7 +31,7 @@ module movemate::i64 {
     }
 
     /// @notice Casts a `u64` to an `I64`.
-    public fun from(x: u64): I64 {
+    public fun from_u64(x: u64): I64 {
         assert!(x <= MAX_I64_AS_U64, error::invalid_argument(ECONVERSION_FROM_U64_OVERFLOW));
         I64 { bits: x }
     }
@@ -41,8 +41,13 @@ module movemate::i64 {
         I64 { bits: 0 }
     }
 
+    /// @notice Creates a new `I64` with value 1.
+    public fun one(): I64 {
+        I64 { bits: 1 }
+    }
+
     /// @notice Casts an `I64` to a `u64`.
-    public fun as_u64(x: &I64): u64 {
+    public fun to_u64(x: &I64): u64 {
         assert!(x.bits < U64_WITH_FIRST_BIT_SET, error::invalid_argument(ECONVERSION_TO_U64_UNDERFLOW));
         x.bits
     }
@@ -64,8 +69,8 @@ module movemate::i64 {
     }
 
     /// @notice Flips the sign of `x`.
-    public fun neg_from(x: u64): I64 {
-        let ret = from(x);
+    public fun neg_from_u64(x: u64): I64 {
+        let ret = from_u64(x);
         if (ret.bits > 0) *&mut ret.bits = ret.bits | (1 << 63);
         ret
     }
@@ -100,7 +105,53 @@ module movemate::i64 {
     }
 
     /// @notice Add `a + b`.
-    public fun add(a: &I64, b: &I64): I64 {
+    public fun add(a: &I64, b: u64): I64 {
+        if (a.bits >> 63 == 0) {
+            // A is positive
+            return I64 { bits: a.bits + b }
+        } else {
+            // A is negative
+            if (a.bits - (1 << 63) <= b) return I64 { bits: b - (a.bits - (1 << 63)) }; // Return positive
+            return I64 { bits: a.bits - b } // Return negative
+        }
+    }
+
+    /// @notice Subtract `a - b`.
+    public fun sub(a: &I64, b: u64): I64 {
+        if (a.bits >> 63 == 0) {
+            // A is positive
+            if (a.bits >= b) return I64 { bits: a.bits - b }; // Return positive
+            return I64 { bits: (1 << 63) | (b - a.bits) } // Return negative
+        } else {
+            // A is negative
+            return I64 { bits: a.bits + b } // Return negative
+        }
+    }
+
+    /// @notice Multiply `a * b`.
+    public fun mul(a: &I64, b: u64): I64 {
+        if (a.bits >> 63 == 0) {
+            // A is positive
+            return I64 { bits: a.bits * b } // Return positive
+        } else {
+            // A is negative
+            return I64 { bits: (1 << 63) | (b * (a.bits - (1 << 63))) } // Return negative
+        }
+    }
+
+    /// @notice Divide `a / b`.
+    public fun div(a: &I64, b: u64): I64 {
+        if (a.bits >> 63 == 0) {
+            // A is positive
+            return I64 { bits: a.bits / b } // Return positive
+        } else {
+            // A is negative
+            return I64 { bits: (1 << 63) | ((a.bits - (1 << 63)) / b) } // Return negative
+        }
+    }
+
+    /// @notice Add `a + b`.
+    public fun add_i64(a: &I64, b: &I64): I64 {
         if (a.bits >> 63 == 0) {
             // A is positive
             if (b.bits >> 63 == 0) {
@@ -125,7 +176,7 @@ module movemate::i64 {
     }
 
     /// @notice Subtract `a - b`.
-    public fun sub(a: &I64, b: &I64): I64 {
+    public fun sub_i64(a: &I64, b: &I64): I64 {
         if (a.bits >> 63 == 0) {
             // A is positive
             if (b.bits >> 63 == 0) {
@@ -150,7 +201,7 @@ module movemate::i64 {
     }
 
     /// @notice Multiply `a * b`.
-    public fun mul(a: &I64, b: &I64): I64 {
+    public fun mul_i64(a: &I64, b: &I64): I64 {
         if (a.bits >> 63 == 0) {
             // A is positive
             if (b.bits >> 63 == 0) {
@@ -173,7 +224,7 @@ module movemate::i64 {
     }
 
     /// @notice Divide `a / b`.
-    public fun div(a: &I64, b: &I64): I64 {
+    public fun div_i64(a: &I64, b: &I64): I64 {
         if (a.bits >> 63 == 0) {
             // A is positive
             if (b.bits >> 63 == 0) {
@@ -212,57 +263,111 @@ module movemate::i64 {
 
     #[test]
     fun test_compare() {
-        assert!(compare(&from(123), &from(123)) == EQUAL, 0);
-        assert!(compare(&neg_from(123), &neg_from(123)) == EQUAL, 0);
-        assert!(compare(&from(234), &from(123)) == GREATER_THAN, 0);
-        assert!(compare(&from(123), &from(234)) == LESS_THAN, 0);
-        assert!(compare(&neg_from(234), &neg_from(123)) == LESS_THAN, 0);
-        assert!(compare(&neg_from(123), &neg_from(234)) == GREATER_THAN, 0);
-        assert!(compare(&from(123), &neg_from(234)) == GREATER_THAN, 0);
-        assert!(compare(&neg_from(123), &from(234)) == LESS_THAN, 0);
-        assert!(compare(&from(234), &neg_from(123)) == GREATER_THAN, 0);
-        assert!(compare(&neg_from(234), &from(123)) == LESS_THAN, 0);
+        assert!(compare(&from_u64(123), &from_u64(123)) == EQUAL, 0);
+        assert!(compare(&neg_from_u64(123), &neg_from_u64(123)) == EQUAL, 0);
+        assert!(compare(&from_u64(234), &from_u64(123)) == GREATER_THAN, 0);
+        assert!(compare(&from_u64(123), &from_u64(234)) == LESS_THAN, 0);
+        assert!(compare(&neg_from_u64(234), &neg_from_u64(123)) == LESS_THAN, 0);
+        assert!(compare(&neg_from_u64(123), &neg_from_u64(234)) == GREATER_THAN, 0);
+        assert!(compare(&from_u64(123), &neg_from_u64(234)) == GREATER_THAN, 0);
+        assert!(compare(&neg_from_u64(123), &from_u64(234)) == LESS_THAN, 0);
+        assert!(compare(&from_u64(234), &neg_from_u64(123)) == GREATER_THAN, 0);
+        assert!(compare(&neg_from_u64(234), &from_u64(123)) == LESS_THAN, 0);
     }
 
     #[test]
     fun test_add() {
-        assert!(add(&from(123), &from(234)) == from(357), 0);
-        assert!(add(&from(123), &neg_from(234)) == neg_from(111), 0);
-        assert!(add(&from(234), &neg_from(123)) == from(111), 0);
-        assert!(add(&neg_from(123), &from(234)) == from(111), 0);
-        assert!(add(&neg_from(123), &neg_from(234)) == neg_from(357), 0);
-        assert!(add(&neg_from(234), &neg_from(123)) == neg_from(357), 0);
+        assert!(add(&from_u64(123), 234) == from_u64(357), 0);
+        assert!(add(&neg_from_u64(123), 234) == from_u64(111), 0);
 
-        assert!(add(&from(123), &neg_from(123)) == zero(), 0);
-        assert!(add(&neg_from(123), &from(123)) == zero(), 0);
+        assert!(add(&neg_from_u64(123), 123) == zero(), 0);
     }
 
     #[test]
     fun test_sub() {
-        assert!(sub(&from(123), &from(234)) == neg_from(111), 0);
-        assert!(sub(&from(234), &from(123)) == from(111), 0);
-        assert!(sub(&from(123), &neg_from(234)) == from(357), 0);
-        assert!(sub(&neg_from(123), &from(234)) == neg_from(357), 0);
-        assert!(sub(&neg_from(123), &neg_from(234)) == from(111), 0);
-        assert!(sub(&neg_from(234), &neg_from(123)) == neg_from(111), 0);
+        assert!(sub(&from_u64(123), 234) == neg_from_u64(111), 0);
+        assert!(sub(&from_u64(234), 123) == from_u64(111), 0);
+        assert!(sub(&neg_from_u64(123), 234) == neg_from_u64(357), 0);
 
-        assert!(sub(&from(123), &from(123)) == zero(), 0);
-        assert!(sub(&neg_from(123), &neg_from(123)) == zero(), 0);
+        assert!(sub(&from_u64(123), 123) == zero(), 0);
     }
 
     #[test]
     fun test_mul() {
-        assert!(mul(&from(123), &from(234)) == from(28782), 0);
-        assert!(mul(&from(123), &neg_from(234)) == neg_from(28782), 0);
-        assert!(mul(&neg_from(123), &from(234)) == neg_from(28782), 0);
-        assert!(mul(&neg_from(123), &neg_from(234)) == from(28782), 0);
+        assert!(mul(&from_u64(123), 234) == from_u64(28782), 0);
+        assert!(mul(&neg_from_u64(123), 234) == neg_from_u64(28782), 0);
     }
 
     #[test]
     fun test_div() {
-        assert!(div(&from(28781), &from(123)) == from(233), 0);
-        assert!(div(&from(28781), &neg_from(123)) == neg_from(233), 0);
-        assert!(div(&neg_from(28781), &from(123)) == neg_from(233), 0);
-        assert!(div(&neg_from(28781), &neg_from(123)) == from(233), 0);
+        assert!(div(&from_u64(28781), 123) == from_u64(233), 0);
+        assert!(div(&neg_from_u64(28781), 123) == neg_from_u64(233), 0);
+    }
+
+    #[test]
+    fun test_add_i64() {
+        assert!(add_i64(&from_u64(123), &from_u64(234)) == from_u64(357), 0);
+        assert!(add_i64(&from_u64(123), &neg_from_u64(234)) == neg_from_u64(111), 0);
+        assert!(add_i64(&from_u64(234), &neg_from_u64(123)) == from_u64(111), 0);
+        assert!(add_i64(&neg_from_u64(123), &from_u64(234)) == from_u64(111), 0);
+        assert!(add_i64(&neg_from_u64(123), &neg_from_u64(234)) == neg_from_u64(357), 0);
+        assert!(add_i64(&neg_from_u64(234), &neg_from_u64(123)) == neg_from_u64(357), 0);
+
+        assert!(add_i64(&from_u64(123), &neg_from_u64(123)) == zero(), 0);
+        assert!(add_i64(&neg_from_u64(123), &from_u64(123)) == zero(), 0);
+    }
+
+    #[test]
+    fun test_sub_i64() {
+        assert!(sub_i64(&from_u64(123), &from_u64(234)) == neg_from_u64(111), 0);
+        assert!(sub_i64(&from_u64(234), &from_u64(123)) == from_u64(111), 0);
+        assert!(sub_i64(&from_u64(123), &neg_from_u64(234)) == from_u64(357), 0);
+        assert!(sub_i64(&neg_from_u64(123), &from_u64(234)) == neg_from_u64(357), 0);
+        assert!(sub_i64(&neg_from_u64(123), &neg_from_u64(234)) == from_u64(111), 0);
+        assert!(sub_i64(&neg_from_u64(234), &neg_from_u64(123)) == neg_from_u64(111), 0);
+
+        assert!(sub_i64(&from_u64(123), &from_u64(123)) == zero(), 0);
+        assert!(sub_i64(&neg_from_u64(123), &neg_from_u64(123)) == zero(), 0);
+    }
+
+    #[test]
+    fun test_mul_i64() {
+        assert!(mul_i64(&from_u64(123), &from_u64(234)) == from_u64(28782), 0);
+        assert!(mul_i64(&from_u64(123), &neg_from_u64(234)) == neg_from_u64(28782), 0);
+        assert!(mul_i64(&neg_from_u64(123), &from_u64(234)) == neg_from_u64(28782), 0);
+        assert!(mul_i64(&neg_from_u64(123), &neg_from_u64(234)) == from_u64(28782), 0);
+    }
+
+    #[test]
+    fun test_div_i64() {
+        assert!(div_i64(&from_u64(28781), &from_u64(123)) == from_u64(233), 0);
+        assert!(div_i64(&from_u64(28781), &neg_from_u64(123)) == neg_from_u64(233), 0);
+        assert!(div_i64(&neg_from_u64(28781), &from_u64(123)) == neg_from_u64(233), 0);
+        assert!(div_i64(&neg_from_u64(28781), &neg_from_u64(123)) == from_u64(233), 0);
+    }
+
+    /// Less than
+    public fun lt(left: &I64, right: &I64): bool {
+        compare(left, right) == LESS_THAN
+    }
+
+    /// Greater than
+    public fun gt(left: &I64, right: &I64): bool {
+        compare(left, right) == GREATER_THAN
+    }
+
+    /// Less or equal than
+    public fun lte(left: &I64, right: &I64): bool {
+        compare(left, right) != GREATER_THAN
+    }
+
+    /// Greater or equal than
+    public fun gte(left: &I64, right: &I64): bool {
+        compare(left, right) != LESS_THAN
+    }
+
+    /// Equal than
+    public fun eq(left: &I64, right: &I64): bool {
+        left.bits == right.bits
     }
 }
