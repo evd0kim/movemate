@@ -3,19 +3,6 @@
 
 /// @title merkle_proof
 /// @dev These functions deal with verification of Merkle Tree proofs.
-/// The proofs can be generated using the JavaScript library
-/// https://github.com/miguelmota/merkletreejs[merkletreejs].
-/// Note: the hashing algorithm should be sha256 and pair sorting should be enabled.
-/// Example code below:
-/// const { MerkleTree } = require('merkletreejs')
-/// const SHA256 = require('crypto-js/sha256')
-/// const leaves = ['a', 'b', 'c'].map(x => SHA256(x))
-/// const tree = new MerkleTree(leaves, SHA256, { sortPairs: true })
-/// const root = tree.getRoot().toString('hex')
-/// const leaf = SHA256('a')
-/// const proof = tree.getProof(leaf)
-/// console.log(tree.verify(proof, leaf, root)) // true
-/// TODO: Unit tests for multi-proof verification.
 module movemate::merkle_proof {
     use std::error;
     use std::hash;
@@ -143,10 +130,12 @@ module movemate::merkle_proof {
 
     #[test]
     fun test_verify() {
+        // ['a', 'b', 'c', 'd', 'e', 'f'] sha256
         let proof = vector::empty<vector<u8>>();
         vector::push_back(&mut proof, x"3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d");
-        vector::push_back(&mut proof, x"2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6");
-        let root = x"aea2dd4249dcecf97ca6a1556db7f21ebd6a40bbec0243ca61b717146a08c347";
+        vector::push_back(&mut proof, x"bffe0b34dba16bc6fac17c08bac55d676cded5a4ade41fe2c9924a5dde8f3e5b");
+        vector::push_back(&mut proof, x"04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908");
+        let root = x"1f7379539707bcaea00564168d1d4d626b09b73f8a2a365234c62d763f854da2";
         let leaf = x"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb";
         assert!(verify(&proof, root, leaf), 0);
     }
