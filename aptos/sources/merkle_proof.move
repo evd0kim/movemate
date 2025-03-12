@@ -133,9 +133,9 @@ module movemate::merkle_proof {
         // ['a', 'b', 'c', 'd', 'e', 'f'] sha256
         let proof = vector::empty<vector<u8>>();
         vector::push_back(&mut proof, x"3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d");
-        vector::push_back(&mut proof, x"bffe0b34dba16bc6fac17c08bac55d676cded5a4ade41fe2c9924a5dde8f3e5b");
-        vector::push_back(&mut proof, x"04fa33f8b4bd3db545fa04cdd51b462509f611797c7bfe5c944ee2bb3b2ed908");
-        let root = x"1f7379539707bcaea00564168d1d4d626b09b73f8a2a365234c62d763f854da2";
+        vector::push_back(&mut proof, x"800e03ddb2432933692401d1631850c0af91953fd9c8f3874488c0541dfcf413");
+        vector::push_back(&mut proof, x"0163e88f03670301d757e64f17f9d99fa3e7567a5f3ce69d58eb72ee0bbb3662");
+        let root = x"a30ba95a1a5dc397fe45ea20105363b08d682b864a28f4940419a29349a28325";
         let leaf = x"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb";
         assert!(verify(&proof, root, leaf), 0);
     }
